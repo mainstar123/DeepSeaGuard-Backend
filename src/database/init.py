@@ -6,10 +6,14 @@ Creates tables and populates with sample data
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.database import engine, Base, ISAZone, SessionLocal
-from utils.sample_data import create_sample_isa_zones
+# Add the project root to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.insert(0, project_root)
+
+from src.database.database import sync_engine, Base, ISAZone, SessionLocal
+from src.utils.sample_data import create_sample_isa_zones
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +24,7 @@ def init_database():
     try:
         # Create all tables
         logger.info("Creating database tables...")
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=sync_engine)
         logger.info("Database tables created successfully")
         
         # Check if sample data already exists
@@ -60,7 +64,7 @@ def reset_database():
     """Reset the database (drop all tables and recreate)"""
     try:
         logger.warning("Dropping all database tables...")
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=sync_engine)
         logger.info("Database tables dropped")
         
         # Reinitialize

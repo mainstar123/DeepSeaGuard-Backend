@@ -1,6 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
-from config.settings import settings
+from src.config.settings import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,15 +8,25 @@ logger = logging.getLogger(__name__)
 def create_celery_app() -> Celery:
     """Create and configure Celery application"""
     
+    # Use in-memory broker for development if Redis is not available
+    broker_url = settings.CELERY_BROKER_URL
+    backend_url = settings.CELERY_RESULT_BACKEND
+    
+    # For development without Redis, use in-memory broker
+    if "redis" in broker_url and not is_redis_available():
+        logger.warning("Redis not available, using in-memory broker for development")
+        broker_url = "memory://"
+        backend_url = "rpc://"
+    
     celery_app = Celery(
         "deepseaguard",
-        broker=settings.CELERY_BROKER_URL,
-        backend=settings.CELERY_RESULT_BACKEND,
+        broker=broker_url,
+        backend=backend_url,
         include=[
-            "core.tasks.compliance_tasks",
-            "core.tasks.geofencing_tasks", 
-            "core.tasks.notification_tasks",
-            "core.tasks.cleanup_tasks"
+            "src.core.tasks.compliance_tasks",
+            "src.core.tasks.geofencing_tasks", 
+            "src.core.tasks.notification_tasks",
+            "src.core.tasks.cleanup_tasks"
         ]
     )
     

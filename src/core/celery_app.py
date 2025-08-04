@@ -2,8 +2,18 @@ from celery import Celery
 from celery.schedules import crontab
 from src.config.settings import settings
 import logging
+import redis
 
 logger = logging.getLogger(__name__)
+
+def is_redis_available():
+    """Check if Redis is available"""
+    try:
+        r = redis.from_url(settings.REDIS_URL)
+        r.ping()
+        return True
+    except Exception:
+        return False
 
 def create_celery_app() -> Celery:
     """Create and configure Celery application"""
@@ -156,8 +166,7 @@ def health_check(self):
     """Health check task for monitoring"""
     try:
         # Check Redis connection
-        from redis import Redis
-        redis_client = Redis.from_url(settings.REDIS_URL)
+        redis_client = redis.from_url(settings.REDIS_URL)
         redis_client.ping()
         
         # Check database connection

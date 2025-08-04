@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeaGuard - Real-time Compliance Monitoring</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .status-bar {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e74c3c;
+        }
+        
+        .status-indicator.connected {
+            background: #27ae60;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .panel h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .alert-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .alert-item {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .alert-item.violation {
+            border-left-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        
+        .alert-item.warning {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        
+        .alert-item.compliant {
+            border-left-color: #27ae60;
+            background: #f0f9f0;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .alert-type {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        
+        .alert-time {
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        
+        .alert-message {
+            margin: 5px 0;
+            font-weight: 500;
+        }
+        
+        .alert-details {
+            font-size: 0.9em;
+            color: #555;
+        }
+        
+        .auv-status {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .auv-card {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .auv-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .auv-id {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .auv-status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .auv-status-badge.compliant {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+        
+        .auv-status-badge.warning {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+        
+        .auv-status-badge.violation {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+        
+        .auv-zones {
+            font-size: 0.9em;
+            color: #555;
+        }
+        
+        .controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DeepSeaGuard</h1>
+            <p>Real-time AUV Compliance Monitoring</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="connection-status">
+                <div class="status-indicator" id="wsStatus"></div>
+                <span id="connectionText">Disconnected</span>
+            </div>
+            <div>
+                <span id="activeConnections">0</span> active connections
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalEvents">0</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="violations">0</div>
+                    <div class="stat-label">Violations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="warnings">0</div>
+                    <div class="stat-label">Warnings</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="input-group">
+                    <label>AUV ID:</label>
+                    <input type="text" id="auvId" value="AUV_TEST_001" placeholder="Enter AUV ID">
+                </div>
+                <div class="input-group">
+                    <label>Latitude:</label>
+                    <input type="number" id="latitude" value="17.75" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>Longitude:</label>
+                    <input type="number" id="longitude" value="-77.75" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>Depth:</label>
+                    <input type="number" id="depth" value="150" step="1">
+                </div>
+                <button class="btn btn-primary" onclick="sendTelemetry()">Send Telemetry</button>
+                <button class="btn btn-success" onclick="startSimulation()">Start Simulation</button>
+                <button class="btn btn-warning" onclick="clearAlerts()">Clear Alerts</button>
+            </div>
+            
+            <div class="panel">
+                <h3>Real-time Alerts</h3>
+                <div class="alert-list" id="alertList">
+                    <div class="alert-item">
+                        <div class="alert-header">
+                            <span class="alert-type">System</span>
+                            <span class="alert-time">Just now</span>
+                        </div>
+                        <div class="alert-message">Waiting for real-time alerts...</div>
+                        <div class="alert-details">Connect to WebSocket to receive live updates</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>AUV Status</h3>
+                <div class="auv-status" id="auvStatus">
+                    <div class="auv-card">
+                        <div class="auv-header">
+                            <span class="auv-id">No AUVs active</span>
+                            <span class="auv-status-badge compliant">Compliant</span>
+                        </div>
+                        <div class="auv-zones">Waiting for telemetry data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let simulationInterval = null;
+        let stats = {
+            totalEvents: 0,
+            violations: 0,
+            warnings: 0,
+            compliant: 0
+        };
+        
+        const alerts = [];
+        const auvStatuses = new Map();
+        
+        function connectWebSocket() {
+            const wsStatus = document.getElementById('wsStatus');
+            const connectionText = document.getElementById('connectionText');
+            
+            ws = new WebSocket('ws://localhost:8000/ws/alerts');
+            
+            ws.onopen = function() {
+                wsStatus.classList.add('connected');
+                connectionText.textContent = 'Connected';
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = function() {
+                wsStatus.classList.remove('connected');
+                connectionText.textContent = 'Disconnected';
+                console.log('WebSocket disconnected');
+                
+                // Try to reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleWebSocketMessage(data) {
+            console.log('Received message:', data);
+            
+            switch(data.type) {
+                case 'compliance_event':
+                    handleComplianceEvent(data);
+                    break;
+                case 'zone_status_update':
+                    handleZoneStatusUpdate(data);
+                    break;
+                case 'compliance_alert':
+                    handleAlert(data);
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+        
+        function handleComplianceEvent(event) {
+            stats.totalEvents++;
+            
+            if (event.status === 'violation') {
+                stats.violations++;
+            } else if (event.status === 'warning') {
+                stats.warnings++;
+            } else {
+                stats.compliant++;
+            }
+            
+            updateStats();
+            addAlert(event);
+        }
+        
+        function handleZoneStatusUpdate(data) {
+            updateAUVStatus(data.auv_id, data.zone_status);
+        }
+        
+        function handleAlert(alert) {
+            addAlert(alert);
+        }
+        
+        function addAlert(data) {
+            const alertList = document.getElementById('alertList');
+            
+            const alertItem = document.createElement('div');
+            alertItem.className = `alert-item ${data.status || data.severity || 'compliant'}`;
+            
+            const time = new Date().toLocaleTimeString();
+            
+            alertItem.innerHTML = `
+                <div class="alert-header">
+                    <span class="alert-type">${data.event_type || data.type}</span>
+                    <span class="alert-time">${time}</span>
+                </div>
+                <div class="alert-message">${data.message || data.violation_details || 'Alert received'}</div>
+                <div class="alert-details">
+                    AUV: ${data.auv_id} | Zone: ${data.zone_name || data.zone_id}
+                    ${data.duration_minutes ? `| Duration: ${data.duration_minutes.toFixed(1)} min` : ''}
+                </div>
+            `;
+            
+            alertList.insertBefore(alertItem, alertList.firstChild);
+            
+            // Keep only last 50 alerts
+            if (alertList.children.length > 50) {
+                alertList.removeChild(alertList.lastChild);
+            }
+        }
+        
+        function updateAUVStatus(auvId, status) {
+            auvStatuses.set(auvId, status);
+            renderAUVStatus();
+        }
+        
+        function renderAUVStatus() {
+            const auvStatusContainer = document.getElementById('auvStatus');
+            
+            if (auvStatuses.size === 0) {
+                auvStatusContainer.innerHTML = `
+                    <div class="auv-card">
+                        <div class="auv-header">
+                            <span class="auv-id">No AUVs active</span>
+                            <span class="auv-status-badge compliant">Compliant</span>
+                        </div>
+                        <div class="auv-zones">Waiting for telemetry data...</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            auvStatusContainer.innerHTML = '';
+            
+            for (const [auvId, status] of auvStatuses) {
+                const auvCard = document.createElement('div');
+                auvCard.className = 'auv-card';
+                
+                const zoneCount = status.current_zones ? status.current_zones.length : 0;
+                const zoneNames = status.current_zones ? 
+                    status.current_zones.map(z => z.zone_name).join(', ') : 'None';
+                
+                auvCard.innerHTML = `
+                    <div class="auv-header">
+                        <span class="auv-id">${auvId}</span>
+                        <span class="auv-status-badge ${status.status}">${status.status}</span>
+                    </div>
+                    <div class="auv-zones">
+                        Active zones: ${zoneCount} (${zoneNames})
+                    </div>
+                `;
+                
+                auvStatusContainer.appendChild(auvCard);
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = stats.totalEvents;
+            document.getElementById('violations').textContent = stats.violations;
+            document.getElementById('warnings').textContent = stats.warnings;
+        }
+        
+        async function sendTelemetry() {
+            const auvId = document.getElementById('auvId').value;
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+            const depth = parseFloat(document.getElementById('depth').value);
+            
+            const telemetry = {
+                auv_id: auvId,
+                latitude: latitude,
+                longitude: longitude,
+                depth: depth,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/telemetry/position', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(telemetry)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Telemetry sent:', result);
+                } else {
+                    console.error('Failed to send telemetry:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error sending telemetry:', error);
+            }
+        }
+        
+        function startSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                return;
+            }
+            
+            simulationInterval = setInterval(() => {
+                // Generate random position around Jamaica
+                const lat = 17.5 + Math.random() * 0.5;
+                const lng = -78.0 + Math.random() * 0.5;
+                const depth = 100 + Math.random() * 100;
+                
+                document.getElementById('latitude').value = lat.toFixed(3);
+                document.getElementById('longitude').value = lng.toFixed(3);
+                document.getElementById('depth').value = Math.round(depth);
+                
+                sendTelemetry();
+            }, 2000);
+        }
+        
+        function clearAlerts() {
+            document.getElementById('alertList').innerHTML = `
+                <div class="alert-item">
+                    <div class="alert-header">
+                        <span class="alert-type">System</span>
+                        <span class="alert-time">Just now</span>
+                    </div>
+                    <div class="alert-message">Alerts cleared</div>
+                    <div class="alert-details">Waiting for new alerts...</div>
+                </div>
+            `;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+            
+            // Add some sample data
+            setTimeout(() => {
+                addAlert({
+                    type: 'system',
+                    message: 'DeepSeaGuard system initialized',
+                    status: 'compliant',
+                    auv_id: 'SYSTEM',
+                    zone_id: 'N/A'
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

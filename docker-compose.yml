@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Redis for Celery broker and result backend
+  redis:
+    image: redis:7-alpine
+    container_name: deepseaguard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Main FastAPI application
+  app:
+    build: .
+    container_name: deepseaguard-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./deepseaguard.db
+      - DATABASE_SYNC_URL=sqlite:///./deepseaguard.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=deepseaguard2024secretkey123456789
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./backups:/app/backups
+      - app_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: >
+      sh -c "
+        python src/database/init.py &&
+        uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # Celery worker for background tasks
+  celery-worker:
+    build: .
+    container_name: deepseaguard-celery-worker
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./deepseaguard.db
+      - DATABASE_SYNC_URL=sqlite:///./deepseaguard.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=deepseaguard2024secretkey123456789
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - app_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    command: celery -A src.core.celery_app worker --loglevel=info --concurrency=2
+
+  # Celery beat for scheduled tasks
+  celery-beat:
+    build: .
+    container_name: deepseaguard-celery-beat
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./deepseaguard.db
+      - DATABASE_SYNC_URL=sqlite:///./deepseaguard.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=deepseaguard2024secretkey123456789
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - app_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    command: celery -A src.core.celery_app beat --loglevel=info
+
+  # Flower for Celery monitoring (optional)
+  flower:
+    build: .
+    container_name: deepseaguard-flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - redis
+      - celery-worker
+    restart: unless-stopped
+    command: celery -A src.core.celery_app flower --port=5555
+
+volumes:
+  redis_data:
+  app_data: 

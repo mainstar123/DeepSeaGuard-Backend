@@ -1,18 +1,17 @@
-from celery import current_task
-from celery.utils.log import get_task_logger
+from celery import shared_task
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
-import logging
 import os
+import shutil
 
-from core.celery_app import celery_app
-from database.database import get_db, ComplianceEvent, AUVZoneTracking
-from config.settings import settings
+from src.database.database import get_db, ComplianceEvent, AUVZoneTracking
+from src.config.settings import settings
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_old_compliance_events(self, days_to_keep: int = 90):
     """Clean up old compliance events from database"""
     try:
@@ -44,7 +43,7 @@ def cleanup_old_compliance_events(self, days_to_keep: int = 90):
         logger.error(f"Error cleaning up old compliance events: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_inactive_auv_tracking(self, hours_threshold: int = 24):
     """Clean up inactive AUV tracking records"""
     try:
@@ -79,7 +78,7 @@ def cleanup_inactive_auv_tracking(self, hours_threshold: int = 24):
         logger.error(f"Error cleaning up inactive AUV tracking: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_old_files(self, directory: str = None, days_to_keep: int = 7):
     """Clean up old files from upload directory"""
     try:
@@ -123,7 +122,7 @@ def cleanup_old_files(self, directory: str = None, days_to_keep: int = 7):
         logger.error(f"Error cleaning up old files: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_redis_cache(self):
     """Clean up expired keys from Redis cache"""
     try:
@@ -155,7 +154,7 @@ def cleanup_redis_cache(self):
         logger.error(f"Error cleaning up Redis cache: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_celery_results(self, hours_to_keep: int = 24):
     """Clean up old Celery task results"""
     try:
@@ -198,7 +197,7 @@ def cleanup_celery_results(self, hours_to_keep: int = 24):
         logger.error(f"Error cleaning up Celery results: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def system_health_check(self):
     """Perform system health check"""
     try:
@@ -261,7 +260,7 @@ def system_health_check(self):
         logger.error(f"Error in system health check: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def optimize_database(self):
     """Optimize database tables"""
     try:
@@ -291,7 +290,7 @@ def optimize_database(self):
         logger.error(f"Error optimizing database: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def backup_database(self, backup_path: str = None):
     """Create database backup"""
     try:
@@ -324,7 +323,7 @@ def backup_database(self, backup_path: str = None):
         logger.error(f"Error creating database backup: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_logs(self, days_to_keep: int = 30):
     """Clean up old log files"""
     try:
@@ -368,7 +367,7 @@ def cleanup_logs(self, days_to_keep: int = 30):
         logger.error(f"Error cleaning up logs: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def full_system_cleanup(self):
     """Perform full system cleanup"""
     try:

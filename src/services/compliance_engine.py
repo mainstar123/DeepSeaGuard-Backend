@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import logging
 from sqlalchemy.orm import Session
-from database.database import ComplianceEvent, AUVZoneTracking, get_db
-from models.schemas import Status, EventType
-from services.geofencing_service import GeofencingService
+from src.database.database import ComplianceEvent, AUVZoneTracking, get_db
+from src.models.schemas import Status, EventType
+from src.services.geofencing_service import GeofencingService
 
 logger = logging.getLogger(__name__)
 

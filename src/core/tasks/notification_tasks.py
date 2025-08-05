@@ -1,17 +1,18 @@
-from celery import current_task
-from celery.utils.log import get_task_logger
+from celery import shared_task
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
-import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-from core.celery_app import celery_app
-from models.schemas import AlertMessage
-from config.settings import settings
+from src.config.settings import settings
+from src.models.schemas import AlertMessage
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def send_websocket_notification(self, message_type: str, data: Dict[str, Any]):
     """Send notification via WebSocket"""
     try:
@@ -42,7 +43,7 @@ def send_websocket_notification(self, message_type: str, data: Dict[str, Any]):
         logger.error(f"Error sending WebSocket notification: {exc}")
         raise self.retry(exc=exc, countdown=30)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def send_compliance_alert(self, alert: Dict[str, Any]):
     """Send compliance alert notification"""
     try:
@@ -84,7 +85,7 @@ def send_compliance_alert(self, alert: Dict[str, Any]):
         logger.error(f"Error sending compliance alert: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
 def send_zone_status_update(self, auv_id: str, zone_status: Dict[str, Any]):
     """Send zone status update notification"""
     try:
@@ -109,7 +110,7 @@ def send_zone_status_update(self, auv_id: str, zone_status: Dict[str, Any]):
         logger.error(f"Error sending zone status update: {exc}")
         raise self.retry(exc=exc, countdown=30)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def send_daily_report_notification(self, report_data: Dict[str, Any]):
     """Send daily compliance report notification"""
     try:
@@ -140,7 +141,7 @@ def send_daily_report_notification(self, report_data: Dict[str, Any]):
         logger.error(f"Error sending daily report notification: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def send_system_alert(self, alert_type: str, message: str, severity: str = 'info', data: Dict[str, Any] = None):
     """Send system-wide alert notification"""
     try:
@@ -171,7 +172,7 @@ def send_system_alert(self, alert_type: str, message: str, severity: str = 'info
         logger.error(f"Error sending system alert: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def send_bulk_notifications(self, notifications: List[Dict[str, Any]]):
     """Send multiple notifications in bulk"""
     try:
@@ -181,14 +182,14 @@ def send_bulk_notifications(self, notifications: List[Dict[str, Any]]):
         for i, notification in enumerate(notifications):
             try:
                 # Update progress
-                current_task.update_state(
-                    state='PROGRESS',
-                    meta={
-                        'current': i + 1,
-                        'total': len(notifications),
-                        'progress': ((i + 1) / len(notifications)) * 100
-                    }
-                )
+                # current_task.update_state( # This line was removed as per the new_code
+                #     state='PROGRESS',
+                #     meta={
+                #         'current': i + 1,
+                #         'total': len(notifications),
+                #         'progress': ((i + 1) / len(notifications)) * 100
+                #     }
+                # )
                 
                 # Send individual notification
                 if notification.get('type') == 'compliance_alert':
@@ -222,7 +223,7 @@ def send_bulk_notifications(self, notifications: List[Dict[str, Any]]):
         logger.error(f"Error in bulk notification sending: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def send_emergency_alert(self, auv_id: str, zone_id: str, message: str, coordinates: Dict[str, float] = None):
     """Send emergency alert for critical violations"""
     try:
@@ -254,7 +255,7 @@ def send_emergency_alert(self, auv_id: str, zone_id: str, message: str, coordina
         logger.error(f"Error sending emergency alert: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_old_notifications(self, days_to_keep: int = 30):
     """Clean up old notification logs"""
     try:
@@ -275,7 +276,7 @@ def cleanup_old_notifications(self, days_to_keep: int = 30):
         logger.error(f"Error cleaning up notifications: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def send_zone_violation_summary(self, zone_id: str, violations: List[Dict[str, Any]]):
     """Send summary of violations for a specific zone"""
     try:
@@ -302,7 +303,7 @@ def send_zone_violation_summary(self, zone_id: str, violations: List[Dict[str, A
         logger.error(f"Error sending zone violation summary: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def send_periodic_health_check(self):
     """Send periodic health check notification"""
     try:

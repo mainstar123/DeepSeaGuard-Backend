@@ -1,18 +1,16 @@
-from celery import current_task
-from celery.utils.log import get_task_logger
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
-import json
+from celery import shared_task
 import logging
+from datetime import datetime, timedelta
+from typing import List, Dict, Any
+import json
 
-from core.celery_app import celery_app
-from database.database import get_db, ISAZone, ComplianceEvent
-from services.geofencing_service import GeofencingService
-from config.settings import settings
+from src.database.database import get_db, ISAZone, ComplianceEvent
+from src.services.geofencing_service import GeofencingService
+from src.config.settings import settings
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def reload_zones_async(self):
     """Reload all zones from database into memory"""
     try:
@@ -31,7 +29,7 @@ def reload_zones_async(self):
         logger.error(f"Error reloading zones: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def update_zone_statistics(self):
     """Update zone usage statistics"""
     try:
@@ -98,7 +96,7 @@ def update_zone_statistics(self):
         logger.error(f"Error updating zone statistics: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def validate_zone_geojson(self, zone_id: str, geojson_data: str):
     """Validate zone GeoJSON data"""
     try:
@@ -142,7 +140,7 @@ def validate_zone_geojson(self, zone_id: str, geojson_data: str):
             'error': str(exc)
         }
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def optimize_zone_cache(self):
     """Optimize zone cache for better performance"""
     try:
@@ -177,7 +175,7 @@ def optimize_zone_cache(self):
         logger.error(f"Error optimizing zone cache: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def check_zone_overlaps(self):
     """Check for overlapping zones"""
     try:
@@ -214,7 +212,7 @@ def check_zone_overlaps(self):
         logger.error(f"Error checking zone overlaps: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def backup_zones_to_file(self, backup_path: str = None):
     """Backup all zones to a file"""
     try:
@@ -257,7 +255,7 @@ def backup_zones_to_file(self, backup_path: str = None):
         logger.error(f"Error backing up zones: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def restore_zones_from_file(self, backup_path: str):
     """Restore zones from a backup file"""
     try:
@@ -304,7 +302,7 @@ def restore_zones_from_file(self, backup_path: str):
         logger.error(f"Error restoring zones: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def analyze_zone_usage_patterns(self, days: int = 30):
     """Analyze zone usage patterns over time"""
     try:

@@ -2,6 +2,10 @@ from pydantic_settings import BaseSettings
 from pydantic import Field, validator
 from typing import List, Optional
 import os
+from dotenv import load_dotenv
+
+# Load .env file at module import
+load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings with environment variable support"""
@@ -110,8 +114,13 @@ class Settings(BaseSettings):
         case_sensitive = True
         extra = "ignore"
 
+# Function to get settings instance
+def get_settings() -> Settings:
+    """Get settings instance with proper .env loading"""
+    return Settings()
+
 # Global settings instance
-settings = Settings()
+settings = get_settings()
 
 # Environment-specific settings
 class DevelopmentSettings(Settings):
@@ -136,15 +145,4 @@ class TestingSettings(Settings):
     DATABASE_URL: str = "sqlite+aiosqlite:///:memory:"
     DATABASE_SYNC_URL: str = "sqlite:///:memory:"
     REDIS_URL: str = "redis://localhost:6379/15"
-    CELERY_BROKER_URL: str = "redis://localhost:6379/16"
-
-def get_settings() -> Settings:
-    """Get settings based on environment"""
-    env = os.getenv("ENVIRONMENT", "development").lower()
-    
-    if env == "production":
-        return ProductionSettings()
-    elif env == "testing":
-        return TestingSettings()
-    else:
-        return DevelopmentSettings() 
+    CELERY_BROKER_URL: str = "redis://localhost:6379/16" 

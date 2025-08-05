@@ -1,21 +1,19 @@
-from celery import current_task
-from celery.utils.log import get_task_logger
+from celery import shared_task
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
-import logging
 
-from core.celery_app import celery_app
-from database.database import get_db, ComplianceEvent, AUVZoneTracking
-from models.schemas import Status, EventType
-from services.compliance_engine import ComplianceEngine
-from services.geofencing_service import GeofencingService
-from services.websocket_manager import WebSocketManager
-from config.settings import settings
+from src.database.database import get_db, ComplianceEvent, AUVZoneTracking
+from src.models.schemas import Status, EventType
+from src.services.compliance_engine import ComplianceEngine
+from src.services.geofencing_service import GeofencingService
+from src.services.websocket_manager import WebSocketManager
+from src.config.settings import settings
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def process_telemetry_async(self, auv_id: str, latitude: float, longitude: float, 
                            depth: float, timestamp: str):
     """Process AUV telemetry asynchronously with Celery"""
@@ -38,7 +36,7 @@ def process_telemetry_async(self, auv_id: str, latitude: float, longitude: float
             send_compliance_notification.delay(event)
         
         # Update task progress
-        current_task.update_state(
+        self.update_state(
             state='SUCCESS',
             meta={
                 'auv_id': auv_id,
@@ -59,7 +57,7 @@ def process_telemetry_async(self, auv_id: str, latitude: float, longitude: float
         # Retry the task
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=300)
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def check_all_auv_compliance(self):
     """Check compliance for all active AUVs"""
     try:
@@ -144,7 +142,7 @@ def check_all_auv_compliance(self):
         logger.error(f"Error in compliance check: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def send_compliance_notification(self, event: Dict[str, Any]):
     """Send compliance notification via WebSocket"""
     try:
@@ -167,7 +165,7 @@ def send_compliance_notification(self, event: Dict[str, Any]):
         logger.error(f"Error sending compliance notification: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def generate_daily_compliance_report(self, date: Optional[str] = None):
     """Generate daily compliance report"""
     try:
@@ -225,7 +223,7 @@ def generate_daily_compliance_report(self, date: Optional[str] = None):
         logger.error(f"Error generating daily report: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def process_batch_telemetry(self, telemetry_batch: List[Dict[str, Any]]):
     """Process multiple telemetry updates in batch"""
     try:
@@ -233,7 +231,7 @@ def process_batch_telemetry(self, telemetry_batch: List[Dict[str, Any]]):
         
         for i, telemetry in enumerate(telemetry_batch):
             # Update progress
-            current_task.update_state(
+            self.update_state(
                 state='PROGRESS',
                 meta={
                     'current': i + 1,
@@ -268,7 +266,7 @@ def process_batch_telemetry(self, telemetry_batch: List[Dict[str, Any]]):
         logger.error(f"Error in batch telemetry processing: {exc}")
         raise self.retry(exc=exc, countdown=60)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+@shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def cleanup_old_compliance_events(self, days_to_keep: int = 90):
     """Clean up old compliance events"""
     try:
@@ -299,7 +297,7 @@ def cleanup_old_compliance_events(self, days_to_keep: int = 90):
         logger.error(f"Error cleaning up old events: {exc}")
         raise self.retry(exc=exc, countdown=300)
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def export_compliance_data(self, start_date: str, end_date: str, format: str = 'json'):
     """Export compliance data for a date range"""
     try:

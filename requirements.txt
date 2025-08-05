@@ -1,32 +1,30 @@
-# Core FastAPI and async
+# Core FastAPI dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 python-dotenv==1.0.0
 
-# Database and ORM
+# Database dependencies
 sqlalchemy==2.0.23
 alembic==1.12.1
-aiosqlite==0.19.0  # Async SQLite support
-# asyncpg==0.29.0  # Uncomment for PostgreSQL support
-# psycopg2-binary==2.9.9  # Uncomment for PostgreSQL support
+aiosqlite==0.19.0
 
-# Background tasks and message queue
+# Background task processing
 celery==5.3.4
 redis==5.0.1
 flower==2.0.1
 
-# Geo processing and data science
+# Geospatial and data processing
 shapely==2.0.2
 pandas==2.1.4
-numpy==1.25.2
+numpy==1.26.2
 geojson==3.1.0
 
-# Validation and serialization
+# Pydantic for data validation
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# Async HTTP and WebSocket
+# HTTP client and WebSocket support
 httpx==0.25.2
 websockets==12.0
 aiofiles==23.2.1
@@ -40,7 +38,7 @@ prometheus-client==0.19.0
 structlog==23.2.0
 sentry-sdk[fastapi]==1.38.0
 
-# Security and authentication
+# Authentication and security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
@@ -53,17 +51,6 @@ isort==5.12.0
 flake8==6.1.0
 mypy==1.7.1
 
-# API documentation
+# Additional utilities
 fastapi-pagination==0.12.15
-
-# Performance and optimization
-orjson==3.9.10
-
-# Health checks
-healthcheck==1.3.5
-
-# Environment and configuration
-dynaconf==3.2.4
-
-# System monitoring (optional - can cause build issues)
-# psutil==5.9.6  # Uncomment if needed for system monitoring 
+orjson==3.9.10 

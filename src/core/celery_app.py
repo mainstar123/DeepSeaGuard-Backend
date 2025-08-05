@@ -170,7 +170,6 @@ def health_check(self):
         redis_client.ping()
         
         # Check database connection
-        from database.database import get_db
         db = next(get_db())
         db.execute("SELECT 1")
         db.close()

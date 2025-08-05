@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 import logging
 from sqlalchemy.orm import Session
-from src.database.database import ComplianceEvent, AUVZoneTracking, get_db
-from src.models.schemas import Status, EventType
-from src.services.geofencing_service import GeofencingService
+from database.database import ComplianceEvent, AUVZoneTracking, get_db
+from models.schemas import Status, EventType
+from services.geofencing_service import GeofencingService
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,13 @@ class ComplianceEngine:
     def __init__(self, geofencing_service: GeofencingService):
         self.geofencing_service = geofencing_service
         self.auv_tracking: Dict[str, Dict[str, Dict]] = {}  # auv_id -> zone_id -> tracking_data
+    
+    def _ensure_timezone_aware(self, dt: datetime) -> datetime:
+        """Ensure datetime is timezone-aware, convert to UTC if naive"""
+        if dt.tzinfo is None:
+            # Assume UTC if timezone-naive
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
     
     def process_telemetry(self, auv_id: str, latitude: float, longitude: float, 
                          depth: float, timestamp: datetime) -> List[Dict]:
@@ -21,6 +28,9 @@ class ComplianceEngine:
         Returns:
             List of compliance events generated
         """
+        # Ensure timestamp is timezone-aware
+        timestamp = self._ensure_timezone_aware(timestamp)
+        
         events = []
         
         # Check which zones the AUV is currently in
@@ -95,7 +105,7 @@ class ComplianceEngine:
             return None
         
         tracking_data = self.auv_tracking[auv_id][zone_id]
-        entry_time = tracking_data['entry_time']
+        entry_time = self._ensure_timezone_aware(tracking_data['entry_time'])
         duration = (timestamp - entry_time).total_seconds() / 60  # minutes
         
         # Create exit event
@@ -123,7 +133,7 @@ class ComplianceEngine:
         zone_id = zone['zone_id']
         tracking_data = self.auv_tracking[auv_id][zone_id]
         
-        entry_time = tracking_data['entry_time']
+        entry_time = self._ensure_timezone_aware(tracking_data['entry_time'])
         max_duration_hours = tracking_data['max_duration_hours']
         
         current_duration = (timestamp - entry_time).total_seconds() / 3600  # hours
@@ -202,8 +212,8 @@ class ComplianceEngine:
         total_active_time = 0
         
         for zone_id, tracking_data in self.auv_tracking[auv_id].items():
-            entry_time = tracking_data['entry_time']
-            current_duration = (datetime.utcnow() - entry_time).total_seconds() / 60  # minutes
+            entry_time = self._ensure_timezone_aware(tracking_data['entry_time'])
+            current_duration = (datetime.now(timezone.utc) - entry_time).total_seconds() / 60  # minutes
             total_active_time += current_duration
             
             zone_status = {

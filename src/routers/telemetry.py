@@ -4,12 +4,12 @@ from typing import List, Dict, Any
 from datetime import datetime
 import logging
 
-from src.database.database import get_db
-from src.models.schemas import TelemetryData, ZoneStatus
-from src.services.compliance_engine import ComplianceEngine
-from src.services.geofencing_service import GeofencingService
-from src.services.websocket_manager import WebSocketManager
-from src.models.schemas import AlertMessage
+from database.database import get_db
+from models.schemas import TelemetryData, ZoneStatus
+from services.compliance_engine import ComplianceEngine
+from services.geofencing_service import GeofencingService
+from services.websocket_manager import WebSocketManager
+from models.schemas import AlertMessage
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -3,13 +3,24 @@ from typing import List, Dict, Any
 import json
 import logging
 from datetime import datetime
-from src.models.schemas import AlertMessage
+from models.schemas import AlertMessage
 
 logger = logging.getLogger(__name__)
 
 class WebSocketManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+    
+    def _serialize_datetime(self, obj):
+        """Helper function to serialize datetime objects for JSON"""
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {key: self._serialize_datetime(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._serialize_datetime(item) for item in obj]
+        else:
+            return obj
     
     async def connect(self, websocket: WebSocket):
         """Connect a new WebSocket client"""
@@ -82,10 +93,13 @@ class WebSocketManager:
     
     async def send_zone_status_update(self, auv_id: str, zone_status: Dict):
         """Send zone status update to all connected clients"""
+        # Serialize the zone_status to handle datetime objects
+        serialized_zone_status = self._serialize_datetime(zone_status)
+        
         status_dict = {
             "type": "zone_status_update",
             "auv_id": auv_id,
-            "zone_status": zone_status,
+            "zone_status": serialized_zone_status,
             "timestamp": datetime.utcnow().isoformat()
         }
         

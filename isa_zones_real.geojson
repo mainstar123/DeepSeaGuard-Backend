@@ -1,0 +1,70 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "CCZ_MAIN",
+        "zone_name": "Clarion Clipperton Zone",
+        "zone_type": "sensitive",
+        "max_duration_hours": 1.0,
+        "name": "Clarion Clipperton Zone",
+        "type": "ISA Zone"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-160.0, 5.0],
+          [-130.0, 5.0],
+          [-130.0, -10.0],
+          [-160.0, -10.0],
+          [-160.0, 5.0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "CONTRACT_ALPHA",
+        "zone_name": "Mock Contract Area Alpha",
+        "zone_type": "restricted",
+        "max_duration_hours": 0.5,
+        "name": "Mock Contract Area Alpha",
+        "contractor": "Triton Mining Co.",
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-150.0, 2.0],
+          [-145.0, 2.0],
+          [-145.0, -2.0],
+          [-150.0, -2.0],
+          [-150.0, 2.0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone_id": "RESERVED_001",
+        "zone_name": "Mock Reserved Area 1",
+        "zone_type": "protected",
+        "max_duration_hours": 2.0,
+        "name": "Mock Reserved Area 1",
+        "designation": "Reserved",
+        "status": "Protected"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-140.0, 1.0],
+          [-135.0, 1.0],
+          [-135.0, -1.0],
+          [-140.0, -1.0],
+          [-140.0, 1.0]
+        ]]
+      }
+    }
+  ]
+} 

@@ -5,11 +5,11 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-from src.database.database import sync_engine, Base
-from src.routers import compliance, telemetry, zones
-from src.services.websocket_manager import WebSocketManager
-from src.services.geofencing_service import GeofencingService
-from src.services.compliance_engine import ComplianceEngine
+from database.database import sync_engine, Base
+from routers import compliance, telemetry, zones, isa_integration
+from services.websocket_manager import WebSocketManager
+from services.geofencing_service import GeofencingService
+from services.compliance_engine import ComplianceEngine
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ Base.metadata.create_all(bind=sync_engine)
 # Initialize FastAPI app
 app = FastAPI(
     title="DeepSeaGuard Compliance Engine",
-    description="Backend service for AUV telemetry processing and ISA compliance monitoring",
+    description="Backend service for AUV telemetry processing and ISA compliance monitoring with real ISA data integration",
     version="1.0.0"
 )
 
@@ -44,11 +44,13 @@ telemetry.geofencing_service = geofencing_service
 telemetry.websocket_manager = websocket_manager
 
 zones.geofencing_service = geofencing_service
+isa_integration.geofencing_service = geofencing_service
 
 # Include routers
 app.include_router(compliance.router, prefix="/api/v1", tags=["compliance"])
 app.include_router(telemetry.router, prefix="/api/v1", tags=["telemetry"])
 app.include_router(zones.router, prefix="/api/v1", tags=["zones"])
+app.include_router(isa_integration.router, prefix="/api/v1", tags=["isa-integration"])
 
 # WebSocket endpoint for real-time alerts
 @app.websocket("/ws/alerts")
@@ -66,7 +68,14 @@ async def root():
     return {
         "message": "DeepSeaGuard Compliance Engine",
         "version": "1.0.0",
-        "status": "running"
+        "status": "running",
+        "features": [
+            "Real-time AUV telemetry processing",
+            "ISA compliance monitoring",
+            "Real ISA data integration",
+            "WebSocket alerts",
+            "Geofencing with proper geometric calculations"
+        ]
     }
 
 @app.get("/health")

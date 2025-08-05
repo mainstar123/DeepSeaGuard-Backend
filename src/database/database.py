@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from datetime import datetime
 import os
-from src.config.settings import settings
+from config.settings import settings
 
 # Database configuration
 def get_database_url():

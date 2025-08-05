@@ -4,9 +4,9 @@ from typing import List, Optional
 import json
 import logging
 
-from src.database.database import get_db, ISAZone
-from src.models.schemas import ISAZoneCreate, ISAZoneResponse, ZoneType
-from src.services.geofencing_service import GeofencingService
+from database.database import get_db, ISAZone
+from models.schemas import ISAZoneCreate, ISAZoneResponse, ZoneType
+from services.geofencing_service import GeofencingService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -92,6 +92,40 @@ async def get_zones(
     except Exception as e:
         logger.error(f"Error retrieving zones: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve zones")
+
+@router.get("/zones/geojson")
+async def get_all_zones_geojson(db: Session = Depends(get_db)):
+    """Get all zones as a GeoJSON FeatureCollection"""
+    try:
+        # Get all zones, including those without is_active set
+        zones = db.query(ISAZone).all()
+        
+        features = []
+        for zone in zones:
+            try:
+                geojson = json.loads(zone.geojson_data)
+                # Add zone metadata to properties
+                if 'properties' not in geojson:
+                    geojson['properties'] = {}
+                geojson['properties'].update({
+                    'zone_id': zone.zone_id,
+                    'zone_name': zone.zone_name,
+                    'zone_type': zone.zone_type,
+                    'max_duration_hours': zone.max_duration_hours
+                })
+                features.append(geojson)
+            except Exception as e:
+                logger.error(f"Error processing zone {zone.zone_id}: {e}")
+                continue
+        
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating GeoJSON: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate GeoJSON")
 
 @router.get("/zones/{zone_id}", response_model=ISAZoneResponse)
 async def get_zone(zone_id: str, db: Session = Depends(get_db)):
@@ -244,35 +278,4 @@ async def upload_zones_from_file(
         raise HTTPException(status_code=400, detail="Invalid JSON format")
     except Exception as e:
         logger.error(f"Error uploading zones: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload zones")
-
-@router.get("/zones/geojson")
-async def get_all_zones_geojson(db: Session = Depends(get_db)):
-    """Get all zones as a GeoJSON FeatureCollection"""
-    try:
-        zones = db.query(ISAZone).filter(ISAZone.is_active == True).all()
-        
-        features = []
-        for zone in zones:
-            try:
-                geojson = json.loads(zone.geojson_data)
-                # Add zone metadata to properties
-                geojson['properties'].update({
-                    'zone_id': zone.zone_id,
-                    'zone_name': zone.zone_name,
-                    'zone_type': zone.zone_type,
-                    'max_duration_hours': zone.max_duration_hours
-                })
-                features.append(geojson)
-            except Exception as e:
-                logger.error(f"Error processing zone {zone.zone_id}: {e}")
-                continue
-        
-        return {
-            "type": "FeatureCollection",
-            "features": features
-        }
-        
-    except Exception as e:
-        logger.error(f"Error generating GeoJSON: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate GeoJSON") 
+        raise HTTPException(status_code=500, detail="Failed to upload zones") 

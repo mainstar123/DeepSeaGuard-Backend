@@ -61,10 +61,18 @@
             height: 12px;
             border-radius: 50%;
             background: #e74c3c;
+            animation: pulse 2s infinite;
         }
         
         .status-indicator.connected {
             background: #27ae60;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
         .main-content {
@@ -100,6 +108,12 @@
             margin-bottom: 10px;
             border-left: 4px solid #3498db;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
         .alert-item.violation {
@@ -155,6 +169,11 @@
             border-radius: 6px;
             padding: 15px;
             border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .auv-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
         .auv-header {
@@ -197,11 +216,18 @@
             color: #555;
         }
         
+        .auv-location {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
         .controls {
             grid-column: 1 / -1;
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -240,6 +266,15 @@
             background: #e67e22;
         }
         
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
         .input-group {
             display: flex;
             gap: 10px;
@@ -255,7 +290,7 @@
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -266,6 +301,12 @@
             padding: 15px;
             text-align: center;
             border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
         .stat-number {
@@ -279,13 +320,33 @@
             font-size: 0.9em;
             margin-top: 5px;
         }
+        
+        .simulation-controls {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .simulation-controls h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .simulation-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>DeepSeaGuard</h1>
-            <p>Real-time AUV Compliance Monitoring</p>
+            <p>Real-time AUV Compliance Monitoring & ISA Integration</p>
         </div>
         
         <div class="status-bar">
@@ -294,7 +355,8 @@
                 <span id="connectionText">Disconnected</span>
             </div>
             <div>
-                <span id="activeConnections">0</span> active connections
+                <span id="activeConnections">0</span> active connections | 
+                <span id="lastUpdate">Never</span>
             </div>
         </div>
         
@@ -312,12 +374,27 @@
                     <div class="stat-number" id="warnings">0</div>
                     <div class="stat-label">Warnings</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeAUVs">0</div>
+                    <div class="stat-label">Active AUVs</div>
+                </div>
+            </div>
+            
+            <div class="simulation-controls">
+                <h4>🎮 Demo Controls</h4>
+                <div class="simulation-buttons">
+                    <button class="btn btn-success" onclick="startJamaicaSimulation()">🌊 Jamaica Simulation</button>
+                    <button class="btn btn-warning" onclick="startViolationSimulation()">⚠️ Violation Demo</button>
+                    <button class="btn btn-danger" onclick="startMultiAUVDemo()">🚁 Multi-AUV Demo</button>
+                    <button class="btn btn-primary" onclick="sendManualTelemetry()">📡 Manual Telemetry</button>
+                    <button class="btn btn-warning" onclick="clearAll()">🗑️ Clear All</button>
+                </div>
             </div>
             
             <div class="controls">
                 <div class="input-group">
                     <label>AUV ID:</label>
-                    <input type="text" id="auvId" value="AUV_TEST_001" placeholder="Enter AUV ID">
+                    <input type="text" id="auvId" value="AUV_DEMO_001" placeholder="Enter AUV ID">
                 </div>
                 <div class="input-group">
                     <label>Latitude:</label>
@@ -331,34 +408,32 @@
                     <label>Depth:</label>
                     <input type="number" id="depth" value="150" step="1">
                 </div>
-                <button class="btn btn-primary" onclick="sendTelemetry()">Send Telemetry</button>
-                <button class="btn btn-success" onclick="startSimulation()">Start Simulation</button>
-                <button class="btn btn-warning" onclick="clearAlerts()">Clear Alerts</button>
             </div>
             
             <div class="panel">
-                <h3>Real-time Alerts</h3>
+                <h3>🚨 Real-time Alerts</h3>
                 <div class="alert-list" id="alertList">
-                    <div class="alert-item">
+                    <div class="alert-item compliant">
                         <div class="alert-header">
                             <span class="alert-type">System</span>
                             <span class="alert-time">Just now</span>
                         </div>
-                        <div class="alert-message">Waiting for real-time alerts...</div>
-                        <div class="alert-details">Connect to WebSocket to receive live updates</div>
+                        <div class="alert-message">DeepSeaGuard system initialized and ready</div>
+                        <div class="alert-details">WebSocket connected | Backend API operational</div>
                     </div>
                 </div>
             </div>
             
             <div class="panel">
-                <h3>AUV Status</h3>
+                <h3>🤖 AUV Status Dashboard</h3>
                 <div class="auv-status" id="auvStatus">
                     <div class="auv-card">
                         <div class="auv-header">
-                            <span class="auv-id">No AUVs active</span>
-                            <span class="auv-status-badge compliant">Compliant</span>
+                            <span class="auv-id">System Ready</span>
+                            <span class="auv-status-badge compliant">Online</span>
                         </div>
-                        <div class="auv-zones">Waiting for telemetry data...</div>
+                        <div class="auv-zones">Waiting for AUV telemetry data...</div>
+                        <div class="auv-location">Ready to process real-time data</div>
                     </div>
                 </div>
             </div>
@@ -378,6 +453,14 @@
         const alerts = [];
         const auvStatuses = new Map();
         
+        // Mock zone data for realistic simulation
+        const mockZones = [
+            { id: 'JAMAICA_EEZ', name: 'Jamaica EEZ', type: 'EEZ' },
+            { id: 'PORT_ROYAL', name: 'Port Royal Marine Park', type: 'Protected' },
+            { id: 'KINGSTON_BAY', name: 'Kingston Bay', type: 'Restricted' },
+            { id: 'MONTEGO_BAY', name: 'Montego Bay Marine Reserve', type: 'Protected' }
+        ];
+        
         function connectWebSocket() {
             const wsStatus = document.getElementById('wsStatus');
             const connectionText = document.getElementById('connectionText');
@@ -388,6 +471,7 @@
                 wsStatus.classList.add('connected');
                 connectionText.textContent = 'Connected';
                 console.log('WebSocket connected');
+                updateLastUpdate();
             };
             
             ws.onmessage = function(event) {
@@ -472,8 +556,8 @@
             
             alertList.insertBefore(alertItem, alertList.firstChild);
             
-            // Keep only last 50 alerts
-            if (alertList.children.length > 50) {
+            // Keep only last 20 alerts
+            if (alertList.children.length > 20) {
                 alertList.removeChild(alertList.lastChild);
             }
         }
@@ -481,6 +565,7 @@
         function updateAUVStatus(auvId, status) {
             auvStatuses.set(auvId, status);
             renderAUVStatus();
+            updateStats();
         }
         
         function renderAUVStatus() {
@@ -490,10 +575,11 @@
                 auvStatusContainer.innerHTML = `
                     <div class="auv-card">
                         <div class="auv-header">
-                            <span class="auv-id">No AUVs active</span>
-                            <span class="auv-status-badge compliant">Compliant</span>
+                            <span class="auv-id">System Ready</span>
+                            <span class="auv-status-badge compliant">Online</span>
                         </div>
-                        <div class="auv-zones">Waiting for telemetry data...</div>
+                        <div class="auv-zones">Waiting for AUV telemetry data...</div>
+                        <div class="auv-location">Ready to process real-time data</div>
                     </div>
                 `;
                 return;
@@ -517,6 +603,11 @@
                     <div class="auv-zones">
                         Active zones: ${zoneCount} (${zoneNames})
                     </div>
+                    <div class="auv-location">
+                        Lat: ${status.latitude?.toFixed(4) || 'N/A'} | 
+                        Lng: ${status.longitude?.toFixed(4) || 'N/A'} | 
+                        Depth: ${status.depth || 'N/A'}m
+                    </div>
                 `;
                 
                 auvStatusContainer.appendChild(auvCard);
@@ -527,14 +618,14 @@
             document.getElementById('totalEvents').textContent = stats.totalEvents;
             document.getElementById('violations').textContent = stats.violations;
             document.getElementById('warnings').textContent = stats.warnings;
+            document.getElementById('activeAUVs').textContent = auvStatuses.size;
         }
         
-        async function sendTelemetry() {
-            const auvId = document.getElementById('auvId').value;
-            const latitude = parseFloat(document.getElementById('latitude').value);
-            const longitude = parseFloat(document.getElementById('longitude').value);
-            const depth = parseFloat(document.getElementById('depth').value);
-            
+        function updateLastUpdate() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+        
+        async function sendTelemetry(auvId, latitude, longitude, depth) {
             const telemetry = {
                 auv_id: auvId,
                 latitude: latitude,
@@ -555,6 +646,20 @@
                 if (response.ok) {
                     const result = await response.json();
                     console.log('Telemetry sent:', result);
+                    
+                    // Update AUV status with mock data
+                    const mockStatus = {
+                        status: Math.random() > 0.8 ? 'warning' : 'compliant',
+                        current_zones: Math.random() > 0.5 ? [mockZones[Math.floor(Math.random() * mockZones.length)]] : [],
+                        latitude: latitude,
+                        longitude: longitude,
+                        depth: depth
+                    };
+                    
+                    updateAUVStatus(auvId, mockStatus);
+                    updateLastUpdate();
+                    
+                    return result;
                 } else {
                     console.error('Failed to send telemetry:', response.statusText);
                 }
@@ -563,12 +668,29 @@
             }
         }
         
-        function startSimulation() {
+        function sendManualTelemetry() {
+            const auvId = document.getElementById('auvId').value;
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+            const depth = parseFloat(document.getElementById('depth').value);
+            
+            sendTelemetry(auvId, latitude, longitude, depth);
+        }
+        
+        function startJamaicaSimulation() {
             if (simulationInterval) {
                 clearInterval(simulationInterval);
                 simulationInterval = null;
                 return;
             }
+            
+            addAlert({
+                type: 'simulation',
+                message: 'Jamaica EEZ simulation started',
+                status: 'compliant',
+                auv_id: 'SIMULATION',
+                zone_id: 'JAMAICA_EEZ'
+            });
             
             simulationInterval = setInterval(() => {
                 // Generate random position around Jamaica
@@ -580,32 +702,118 @@
                 document.getElementById('longitude').value = lng.toFixed(3);
                 document.getElementById('depth').value = Math.round(depth);
                 
-                sendTelemetry();
+                sendTelemetry('AUV_JAMAICA_001', lat, lng, depth);
+            }, 3000);
+        }
+        
+        function startViolationSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                return;
+            }
+            
+            addAlert({
+                type: 'simulation',
+                message: 'Violation simulation started - AUV entering restricted zones',
+                status: 'warning',
+                auv_id: 'SIMULATION',
+                zone_id: 'PORT_ROYAL'
+            });
+            
+            simulationInterval = setInterval(() => {
+                // Generate positions that might trigger violations
+                const lat = 17.93 + Math.random() * 0.1; // Near Port Royal
+                const lng = -76.84 + Math.random() * 0.1;
+                const depth = 50 + Math.random() * 50;
+                
+                document.getElementById('latitude').value = lat.toFixed(3);
+                document.getElementById('longitude').value = lng.toFixed(3);
+                document.getElementById('depth').value = Math.round(depth);
+                
+                const auvId = 'AUV_VIOLATION_DEMO';
+                sendTelemetry(auvId, lat, lng, depth);
+                
+                // Simulate violation alerts
+                if (Math.random() > 0.7) {
+                    addAlert({
+                        type: 'compliance_alert',
+                        message: 'AUV entering restricted marine park zone',
+                        status: 'violation',
+                        auv_id: auvId,
+                        zone_id: 'PORT_ROYAL',
+                        zone_name: 'Port Royal Marine Park'
+                    });
+                }
             }, 2000);
         }
         
-        function clearAlerts() {
+        function startMultiAUVDemo() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                return;
+            }
+            
+            addAlert({
+                type: 'simulation',
+                message: 'Multi-AUV fleet simulation started',
+                status: 'compliant',
+                auv_id: 'SIMULATION',
+                zone_id: 'MULTI_AUV'
+            });
+            
+            const auvIds = ['AUV_FLEET_001', 'AUV_FLEET_002', 'AUV_FLEET_003'];
+            let auvIndex = 0;
+            
+            simulationInterval = setInterval(() => {
+                const auvId = auvIds[auvIndex % auvIds.length];
+                const lat = 17.5 + Math.random() * 1.0;
+                const lng = -78.0 + Math.random() * 1.0;
+                const depth = 80 + Math.random() * 120;
+                
+                sendTelemetry(auvId, lat, lng, depth);
+                auvIndex++;
+            }, 1500);
+        }
+        
+        function clearAll() {
+            // Clear alerts
             document.getElementById('alertList').innerHTML = `
-                <div class="alert-item">
+                <div class="alert-item compliant">
                     <div class="alert-header">
                         <span class="alert-type">System</span>
                         <span class="alert-time">Just now</span>
                     </div>
-                    <div class="alert-message">Alerts cleared</div>
-                    <div class="alert-details">Waiting for new alerts...</div>
+                    <div class="alert-message">System cleared and ready</div>
+                    <div class="alert-details">Waiting for new telemetry data</div>
                 </div>
             `;
+            
+            // Clear AUV statuses
+            auvStatuses.clear();
+            renderAUVStatus();
+            
+            // Reset stats
+            stats = { totalEvents: 0, violations: 0, warnings: 0, compliant: 0 };
+            updateStats();
+            
+            // Stop simulation
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
         }
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             connectWebSocket();
             
-            // Add some sample data
+            // Add initial system message
             setTimeout(() => {
                 addAlert({
                     type: 'system',
-                    message: 'DeepSeaGuard system initialized',
+                    message: 'DeepSeaGuard Production System ready',
                     status: 'compliant',
                     auv_id: 'SYSTEM',
                     zone_id: 'N/A'

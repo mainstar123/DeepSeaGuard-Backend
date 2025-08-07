@@ -1,6 +1,7 @@
 from celery import Celery
 from celery.schedules import crontab
 from src.config.settings import settings
+from src.database.database import get_db
 import logging
 import redis
 

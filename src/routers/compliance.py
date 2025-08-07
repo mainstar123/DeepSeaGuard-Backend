@@ -4,8 +4,8 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
 
-from database.database import get_db, ComplianceEvent
-from models.schemas import (
+from src.database.database import get_db, ComplianceEvent
+from src.models.schemas import (
     ComplianceEventCreate, 
     ComplianceEventResponse, 
     ComplianceReport,

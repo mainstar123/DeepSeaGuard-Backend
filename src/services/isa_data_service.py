@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
-from database.database import ISAZone, get_db
+from src.database.database import ISAZone, get_db
 
 logger = logging.getLogger(__name__)
 

@@ -5,11 +5,11 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-from database.database import sync_engine, Base
-from routers import compliance, telemetry, zones, isa_integration
-from services.websocket_manager import WebSocketManager
-from services.geofencing_service import GeofencingService
-from services.compliance_engine import ComplianceEngine
+from src.database.database import sync_engine, Base
+from src.routers import compliance, telemetry, zones, isa_integration
+from src.services.websocket_manager import WebSocketManager
+from src.services.geofencing_service import GeofencingService
+from src.services.compliance_engine import ComplianceEngine
 
 # Load environment variables
 load_dotenv()

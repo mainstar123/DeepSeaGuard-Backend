@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 import json
 import logging
 from datetime import datetime
-from models.schemas import AlertMessage
+from src.models.schemas import AlertMessage
 
 logger = logging.getLogger(__name__)
 

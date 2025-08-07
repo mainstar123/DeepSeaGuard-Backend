@@ -4,9 +4,9 @@ from typing import List, Optional
 import json
 import logging
 
-from database.database import get_db, ISAZone
-from models.schemas import ISAZoneCreate, ISAZoneResponse, ZoneType
-from services.geofencing_service import GeofencingService
+from src.database.database import get_db, ISAZone
+from src.models.schemas import ISAZoneCreate, ISAZoneResponse, ZoneType
+from src.services.geofencing_service import GeofencingService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
